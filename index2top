@@ -1,1 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Top Layer Permeability Calculator</title>
+    <style>
+      body{font-family:Segoe UI,Arial,sans-serif;margin:20px;background:#f5f7fb;color:#222}
+      h1{margin-bottom:.3em}
+      table{border-collapse:collapse;margin:8px 0;width:100%;max-width:320px;font-size:.9em}
+      th,td{border:1px solid #bbb;padding:4px 6px;text-align:center}
+      th{background:#e8eef6;font-weight:600}
+      input[type=number]{width:90px;padding:4px}
+      input[type=text]{width:220px;padding:4px}
+      .gas-head{background:#d5e0f2;font-weight:700}
+      .note{font-size:.85em;color:#555;margin-top:6px}
+      .wrapper{display:flex;flex-wrap:wrap;gap:22px}
+      .card{background:#fff;border:1px solid #cdd5e1;border-radius:6px;padding:14px;box-shadow:1px 1px 4px rgba(0,0,0,.05)}
+      .btn{background:#1e6be3;border:none;padding:8px 16px;color:#fff;border-radius:4px;cursor:pointer;transition: background 0.2s;}
+      .btn:hover{background:#1653b6}
+      .sel-container{display:flex;flex-wrap:wrap;gap:12px;margin-top:12px}
+      .sel-card{flex:1 1 230px}
 
+      /* === schematic === */
+      .schematic-card{max-width:340px}
+      #schematicWrapper{display:flex;align-items:center;gap:14px}
+      #memSVG{border:1px solid #777;background:#fff}
+      .swatch{width:14px;height:14px;display:inline-block;margin-right:6px;border:1px solid #555;border-radius:2px}
+      .error-text{color:#d32f2f;font-weight:bold;font-size:0.9em;}
+    </style>
+  </head>
+
+  <body>
+    <h1>Top Layer Permeability Calculator</h1>
+
+    <div class="wrapper">
+      <div class="card">
+        <h3>Layer names & thickness</h3>
+        <p><label><strong>Top Layer name:&nbsp;</strong>
+          <input type="text" id="layer2Name" value="Aromatic Polyamide"></label>
+        </p>
+        <table>
+          <tr><th></th><th>Underlayer (Layer 1)</th><th id="thickName">Top Layer (Layer 2)</th></tr>
+          <tr>
+            <td class="gas-head">Thickness [µm]</td>
+            <td><input type="number" id="t1" value="1" min="0.0001" step="any"></td>
+            <td><input type="number" id="t2" value="0.02" min="0.0001" step="any"></td>
+          </tr>
+        </table>
+
+        <h4>Underlayer Permeances (GPU)</h4>
+        <table id="underlayerTable"><tr><th>Gas</th><th>GPU<sub>1</sub></th></tr></table>
+
+        <h4>Composite Permeances (GPU)</h4>
+        <table id="compositeTable"><tr><th>Gas</th><th>GPU<sub>total</sub></th></tr></table>
+
+        <button class="btn" id="calcBtn" onclick="calculate()">Calculate Top Layer</button>
+        <p class="note">
+          Blank = impermeable (infinite resistance).<br>
+          Permeability (Barrer) = GPU × Thickness (µm).<br>
+          <em>Note: Composite permeance must be strictly less than Underlayer permeance.</em>
+        </p>
+      </div>
+
+      <div class="card" style="flex:1">
+        <h3>Calculated Top Layer Results</h3>
+        <table id="resultTable" style="max-width: 100%;"></table>
+        <p class="note" id="errorMsg" style="display:none; color:#d32f2f;">
+          * Invalid: Composite permeance cannot be greater than or equal to underlayer permeance in a series resistance model.
+        </p>
+
+        <div class="sel-container">
+          <div class="sel-card">
+            <h4>Underlayer Selectivity</h4><table id="selL1"></table>
+          </div>
+          <div class="sel-card">
+            <h4 id="selL2Head">Calculated Top Layer</h4><table id="selL2"></table>
+          </div>
+          <div class="sel-card">
+            <h4>Composite Selectivity</h4><table id="selTotal"></table>
+          </div>
+        </div>
+      </div>
+
+      <div class="card schematic-card">
+        <h3>Membrane Schematic</h3>
+        <div id="schematicWrapper">
+          <svg id="memSVG" width="160" height="110" viewBox="0 0 160 110"></svg>
+          <div id="layerLabels"></div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      /* ---------- Defaults ---------- */
+      const defaultGPU1   = {He: 26.7, H2: 48.2, O2: 9, N2: 1.61, CO2: 44.8, CH4: 1.806};
+      const defaultGPUcomp= {He: 0.1396, H2: 0.12235, O2: 0.0137, N2: 0.00171, CO2: 0.04332, CH4: 0.00067};
+      
+      const gases=["He","H2","O2","N2","CO2","CH4"];
+      const selPairs=[["H2","N2"],["O2","N2"],["CO2","CH4"],["CO2","N2"],
+                      ["H2","CH4"],["H2","CO2"],["N2","CH4"],["He","H2"],["H2","O2"]];
+
+      /* ---------- Build input tables ---------- */
+      const uTbl = document.getElementById("underlayerTable");
+      const cTbl = document.getElementById("compositeTable");
+      
+      gases.forEach(g => {
+        let r1 = uTbl.insertRow();
+        r1.insertCell().textContent = g;
+        let i1 = document.createElement("input");
+        i1.type = "number"; i1.id = `GPU1_${g}`; i1.step = "any"; i1.min = "0"; i1.value = defaultGPU1[g];
+        r1.insertCell().appendChild(i1);
+
+        let r2 = cTbl.insertRow();
+        r2.insertCell().textContent = g;
+        let i2 = document.createElement("input");
+        i2.type = "number"; i2.id = `GPUcomp_${g}`; i2.step = "any"; i2.min = "0"; i2.value = defaultGPUcomp[g];
+        r2.insertCell().appendChild(i2);
+      });
+
+      /* ---------- Helpers ---------- */
+      const formatNum = (num) => {
+        if (!num || num === 0) return "0";
+        let absVal = Math.abs(num);
+        if (absVal < 0.001 || absVal > 10000) return num.toExponential(3);
+        return parseFloat(num.toPrecision(4)).toString();
+      };
+
+      const extractGPU2 = (gpu1, gpuComp) => {
+        if (!gpuComp || gpuComp <= 0) return 0; // Composite impermeable
+        if (gpu1 <= 0 && gpuComp > 0) return -1; // Impossible: underlayer impermeable, composite permeable
+        if (gpu1 > 0 && gpuComp >= gpu1) return -1; // Impossible: composite permeance >= underlayer
+        let res2 = (1 / gpuComp) - (1 / gpu1);
+        return 1 / res2;
+      };
+
+      /* ---------- Build schematic ---------- */
+      const svg=document.getElementById("memSVG");
+      const labelsDiv=document.getElementById("layerLabels");
+      const colors={layer1:"#90c7e8",layer2:"#f5b93b"};
+      let rect1,rect2;
+
+      function drawSchematic(t1,t2,l1Name,l2Name){
+        const total=t1+t2||1;
+        const barH=100;
+        const barW=120;
+        const padY=5;
+
+        if(!rect1){
+          rect1=document.createElementNS("http://www.w3.org/2000/svg","rect");
+          rect2=document.createElementNS("http://www.w3.org/2000/svg","rect");
+          svg.appendChild(rect1);svg.appendChild(rect2);
+        }
+        rect1.setAttribute("x",20);
+        rect1.setAttribute("y",padY + barH*t2/total);
+        rect1.setAttribute("width",barW);
+        rect1.setAttribute("height",barH*t1/total);
+        rect1.setAttribute("fill",colors.layer1);
+        rect1.setAttribute("stroke","#555");
+
+        rect2.setAttribute("x",20);
+        rect2.setAttribute("y",padY);
+        rect2.setAttribute("width",barW);
+        rect2.setAttribute("height",barH*t2/total);
+        rect2.setAttribute("fill",colors.layer2);
+        rect2.setAttribute("stroke","#555");
+
+        labelsDiv.innerHTML="";
+        const makeLabel=(clr,txt)=>{
+          let p=document.createElement("p");
+          p.style.margin="2px 0";
+          p.innerHTML=`<span class="swatch" style="background:${clr}"></span>${txt}`;
+          labelsDiv.appendChild(p);
+        };
+        makeLabel(colors.layer2,l2Name);
+        makeLabel(colors.layer1,l1Name);
+      }
+
+      /* ---------- Main calculation ---------- */
+      function calculate(isClick = false){
+        const layer2Name=(document.getElementById("layer2Name").value||"Top Layer").trim();
+        document.getElementById("thickName").textContent=`${layer2Name} (Layer 2)`;
+        document.getElementById("selL2Head").textContent=`Calc. ${layer2Name}`;
+
+        const t1=parseFloat(document.getElementById("t1").value);
+        const t2=parseFloat(document.getElementById("t2").value);
+
+        const G1={}, G2={}, Gcomp={}, P2={};
+        let hasError = false;
+
+        gases.forEach(g => {
+          let gpu1 = parseFloat(document.getElementById(`GPU1_${g}`).value);
+          let gpuComp = parseFloat(document.getElementById(`GPUcomp_${g}`).value);
+          
+          if(Number.isNaN(gpu1)) gpu1 = 0;
+          if(Number.isNaN(gpuComp)) gpuComp = 0;
+
+          G1[g] = gpu1;
+          Gcomp[g] = gpuComp;
+          
+          let calcG2 = extractGPU2(gpu1, gpuComp);
+          G2[g] = calcG2;
+          
+          if(calcG2 === -1) {
+            hasError = true;
+            P2[g] = -1;
+          } else {
+            P2[g] = calcG2 * t2;
+          }
+        });
+
+        document.getElementById("errorMsg").style.display = hasError ? "block" : "none";
+
+        /* ----- Permeance table ----- */
+        const rt=document.getElementById("resultTable");rt.innerHTML="";
+        let hdr=rt.insertRow();
+        ["Gas","GPU₁ (Underlayer)","GPU_total (Composite)",`Calc. GPU₂`,`Calc. P₂ [Barrer]`].forEach(h=>{
+          const th=document.createElement("th");th.textContent=h;hdr.appendChild(th);
+        });
+        
+        gases.forEach(g=>{
+          let row=rt.insertRow();
+          row.insertCell().textContent=g;
+          row.insertCell().textContent=G1[g] ? formatNum(G1[g]) : "0";
+          row.insertCell().textContent=Gcomp[g] ? formatNum(Gcomp[g]) : "0";
+          
+          let c1 = row.insertCell();
+          let c2 = row.insertCell();
+          
+          if(G2[g] === -1){
+            c1.innerHTML = `<span class="error-text">Invalid*</span>`;
+            c2.innerHTML = `<span class="error-text">Invalid*</span>`;
+          } else {
+            c1.textContent = G2[g] > 0 ? formatNum(G2[g]) : "—";
+            c2.textContent = G2[g] > 0 ? formatNum(P2[g]) : "—";
+          }
+        });
+
+        /* ----- Selectivity tables ----- */
+        buildSel("selL1", G1);
+        buildSel("selL2", G2, true);
+        buildSel("selTotal", Gcomp);
+
+        /* ----- Schematic ----- */
+        drawSchematic(t1,t2,"Underlayer",layer2Name);
+
+        /* ----- Button Feedback ----- */
+        if(isClick){
+          const btn = document.getElementById("calcBtn");
+          btn.textContent = "Calculated!";
+          btn.style.backgroundColor = "#2e7d32";
+          setTimeout(() => {
+            btn.textContent = "Calculate Top Layer";
+            btn.style.backgroundColor = "";
+          }, 800);
+        }
+      }
+
+      function buildSel(tableID, gpu, hideZero=false){
+        const t=document.getElementById(tableID);t.innerHTML="";
+        let h=t.insertRow();
+        ["A/B","α (A/B)"].forEach(tx=>{
+          const th=document.createElement("th");th.textContent=tx;h.appendChild(th);
+        });
+        selPairs.forEach(([A,B])=>{
+          let r=t.insertRow();
+          r.insertCell().textContent=`${A}/${B}`;
+          
+          let val = "—";
+          if(gpu[A] === -1 || gpu[B] === -1) {
+             val = "Error";
+          } else if(gpu[B]) {
+             val = formatNum(gpu[A]/gpu[B]);
+          } else if(!hideZero) {
+             val = "∞";
+          }
+          r.insertCell().textContent=val;
+        });
+      }
+
+      /* initial render */
+      calculate(false);
+      
+      /* Make sure the button passes the click flag */
+      document.getElementById("calcBtn").onclick = () => calculate(true);
+    </script>
+  </body>
+</html>
