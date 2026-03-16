@@ -1,378 +1,910 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Top Layer Permeability Calculator</title>
-    <style>
-      body {
-        font-family: Segoe UI, Arial, sans-serif;
-        margin: 20px;
-        background: #f5f7fb;
-        color: #222;
-      }
-      h1 { margin-bottom: .3em; }
-      table {
-        border-collapse: collapse;
-        margin: 8px 0;
-        width: 100%;
-        max-width: 320px;
-        font-size: .9em;
-      }
-      th, td { border: 1px solid #bbb; padding: 4px 6px; text-align: center; }
-      th { background: #e8eef6; font-weight: 600; }
-      input[type=number] { width: 90px; padding: 4px; }
-      input[type=text] { width: 220px; padding: 4px; }
-      .gas-head { background: #d5e0f2; font-weight: 700; }
-      .note { font-size: .85em; color: #555; margin-top: 6px; }
-      .wrapper { display: flex; flex-wrap: wrap; gap: 22px; }
-      .card {
-        background: #fff;
-        border: 1px solid #cdd5e1;
-        border-radius: 6px;
-        padding: 14px;
-        box-shadow: 1px 1px 4px rgba(0,0,0,.05);
-      }
-      .btn {
-        background: #1e6be3;
-        border: none;
-        padding: 8px 16px;
-        color: #fff;
-        border-radius: 4px;
-        cursor: pointer;
-        transition: background 0.2s;
-      }
-      .btn:hover { background: #1653b6; }
-      .btn:disabled { background: #2e7d32; cursor: default; }
-      .sel-container { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 12px; }
-      .sel-card { flex: 1 1 230px; }
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Top Layer Permeability Calculator</title>
+  <style>
+    /* ── Reset ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-      /* schematic */
-      .schematic-card { max-width: 340px; }
-      #schematicWrapper { display: flex; align-items: center; gap: 14px; }
-      #memSVG { border: 1px solid #777; background: #fff; }
-      .swatch {
-        width: 14px;
-        height: 14px;
-        display: inline-block;
-        margin-right: 6px;
-        border: 1px solid #555;
-        border-radius: 2px;
-      }
+    /* ── Base ── */
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: #f0f4f8;
+      color: #1e293b;
+      min-height: 100vh;
+    }
 
-      /* validation / errors */
-      .error-message {
-        color: #d32f2f;
-        font-size: .85em;
-        margin-top: 6px;
-        display: none;
-      }
-      .error-text { color: #d32f2f; font-weight: bold; font-size: 0.9em; }
-    </style>
-  </head>
+    /* ── Header ── */
+    .app-header {
+      background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+      color: white;
+      padding: 18px 24px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.25);
+    }
+    .app-header h1 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; }
+    .app-header p  { font-size: .8rem; opacity: .75; margin-top: 3px; }
 
-  <body>
-    <h1>Top Layer Permeability Calculator</h1>
+    /* ── Page body ── */
+    .app-body { padding: 16px; }
 
-    <div class="wrapper">
-      <div class="card">
-        <h3>Layer names &amp; thickness</h3>
-        <p>
-          <label for="layer2Name"><strong>Top Layer name:&nbsp;</strong></label>
-          <input type="text" id="layer2Name" value="Aromatic Polyamide" aria-label="Top layer name">
-        </p>
-        <table aria-label="Layer thickness inputs">
+    /* ── Layout ── */
+    .main-layout { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-start; }
+
+    /* ── Cards ── */
+    .card {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.06), 0 4px 14px rgba(0,0,0,.05);
+    }
+    .card-title {
+      font-size: .9rem;
+      font-weight: 700;
+      color: #1e3a8a;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #e2e8f0;
+    }
+    .card-subtitle {
+      font-size: .8rem;
+      font-weight: 600;
+      color: #475569;
+      margin: 12px 0 6px;
+    }
+
+    /* ── Tables ── */
+    table { border-collapse: collapse; width: 100%; font-size: .83rem; }
+    th, td { border: 1px solid #e2e8f0; padding: 5px 7px; text-align: center; }
+    th { background: #f1f5f9; font-weight: 600; color: #475569; }
+    tbody tr:nth-child(even) td { background: #f8fafc; }
+    tbody tr:hover td { background: #eff6ff; transition: background .1s; }
+
+    .gas-head { background: #dbeafe !important; font-weight: 700; color: #1d4ed8; }
+    .result-table thead th {
+      background: #1d4ed8; color: white; border-color: #1d4ed8; font-size: .8rem;
+    }
+    .sel-table thead th { background: #334155; color: white; border-color: #334155; }
+
+    /* selectivity colour-coding */
+    .alpha-hi  { background: #dcfce7 !important; color: #14532d; font-weight: 700; }
+    .alpha-mid { background: #fef9c3 !important; color: #713f12; }
+    .alpha-lo  { background: #fee2e2 !important; color: #7f1d1d; }
+
+    /* ── Inputs ── */
+    input[type=number], input[type=text] {
+      border: 1px solid #cbd5e1;
+      border-radius: 5px;
+      padding: 4px 6px;
+      font-size: .83rem;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    input[type=number] { width: 90px; }
+    input[type=text]   { width: 220px; }
+    input:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59,130,246,.15);
+    }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 7px 14px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: .83rem;
+      font-weight: 600;
+      transition: background .15s, transform .1s, box-shadow .15s;
+    }
+    .btn:active:not(:disabled) { transform: translateY(1px); }
+    .btn:disabled { opacity: .65; cursor: default; transform: none; }
+    .btn-primary   { background: #2563eb; color: white; }
+    .btn-primary:hover:not(:disabled)   { background: #1d4ed8; box-shadow: 0 2px 8px rgba(37,99,235,.35); }
+    .btn-secondary { background: #475569; color: white; }
+    .btn-secondary:hover:not(:disabled) { background: #334155; }
+    .btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+
+    /* ── Tabs ── */
+    .tab-nav {
+      display: flex;
+      gap: 0;
+      border-bottom: 2px solid #e2e8f0;
+      margin-bottom: 14px;
+    }
+    .tab-btn {
+      padding: 7px 13px;
+      border: none;
+      background: none;
+      cursor: pointer;
+      font-size: .83rem;
+      font-weight: 500;
+      color: #64748b;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      transition: color .15s, border-color .15s;
+      white-space: nowrap;
+    }
+    .tab-btn.active { color: #2563eb; border-bottom-color: #2563eb; font-weight: 700; }
+    .tab-btn:hover:not(.active) { color: #334155; }
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; }
+
+    /* ── Unit row ── */
+    .unit-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+    .unit-row label { font-size: .78rem; font-weight: 600; color: #475569; }
+    select.unit-select {
+      padding: 4px 8px;
+      border: 1px solid #cbd5e1;
+      border-radius: 5px;
+      font-size: .78rem;
+      background: white;
+      cursor: pointer;
+    }
+
+    /* ── Selectivity layout ── */
+    .sel-container { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+    .sel-card { flex: 1 1 190px; }
+    .sel-card-title {
+      font-size: .75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      color: #64748b;
+      margin-bottom: 5px;
+    }
+
+    /* ── Schematic ── */
+    .schematic-card { width: 195px; flex-shrink: 0; }
+    #schematicWrapper { display: flex; align-items: flex-start; gap: 10px; }
+    #memSVG { border: 1px solid #cbd5e1; border-radius: 4px; background: #fff; flex-shrink: 0; }
+    .swatch {
+      width: 12px; height: 12px;
+      display: inline-block;
+      margin-right: 5px;
+      border: 1px solid #aaa;
+      border-radius: 2px;
+      vertical-align: middle;
+    }
+    #layerLabels p { font-size: .78rem; margin: 4px 0; color: #334155; }
+    .flow-label { font-size: .72rem; color: #94a3b8; margin-top: 8px; line-height: 1.6; }
+
+    /* ── Validation / errors ── */
+    .error-message {
+      color: #dc2626;
+      font-size: .78rem;
+      margin-top: 6px;
+      display: none;
+    }
+    .error-text { color: #dc2626; font-weight: 700; }
+
+    /* ── Note ── */
+    .note { font-size: .75rem; color: #64748b; margin-top: 8px; line-height: 1.6; }
+
+    /* ── Canvas charts ── */
+    .chart-wrap { margin-bottom: 16px; }
+    .chart-wrap h4 {
+      font-size: .83rem;
+      font-weight: 700;
+      color: #1e3a8a;
+      margin-bottom: 8px;
+    }
+    canvas {
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      display: block;
+      max-width: 100%;
+      background: #f8fafc;
+    }
+    .chart-note { font-size: .72rem; color: #64748b; margin-top: 5px; }
+
+    /* ── Robeson pair selector ── */
+    .pair-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+    }
+    .pair-row label { font-size: .78rem; font-weight: 600; color: #475569; }
+  </style>
+</head>
+
+<body>
+
+<!-- ════════════════════════════════════════════════════════════
+     HEADER
+═════════════════════════════════════════════════════════════ -->
+<header class="app-header">
+  <h1>Top Layer Permeability Calculator</h1>
+  <p>Composite membrane &mdash; inverse calculation (GPU₁ + GPU_comp → GPU₂, P₂)</p>
+</header>
+
+<div class="app-body">
+  <div class="main-layout">
+
+    <!-- ══════════════════════════════════════════════════
+         INPUT PANEL
+    ═══════════════════════════════════════════════════ -->
+    <div class="card" style="min-width:260px; flex-shrink:0;">
+      <div class="card-title">Layer Configuration</div>
+
+      <label for="layer2Name" style="font-size:.78rem;font-weight:600;color:#475569;">
+        Top Layer name
+      </label><br>
+      <input type="text" id="layer2Name" value="Aromatic Polyamide"
+             aria-label="Top layer name" style="margin:5px 0 10px;">
+
+      <table aria-label="Layer thickness">
+        <thead>
           <tr>
             <th></th>
-            <th>Underlayer (Layer 1)</th>
-            <th id="thickName">Top Layer (Layer 2)</th>
+            <th>Underlayer (L1)</th>
+            <th id="thickName">Top Layer (L2)</th>
           </tr>
+        </thead>
+        <tbody>
           <tr>
             <td class="gas-head">Thickness [µm]</td>
             <td><input type="number" id="t1" value="1" min="0.0001" step="any"
-                       aria-label="Underlayer thickness in micrometers"></td>
+                       aria-label="Underlayer thickness µm"></td>
             <td><input type="number" id="t2" value="0.02" min="0.0001" step="any"
-                       aria-label="Top layer thickness in micrometers"></td>
+                       aria-label="Top layer thickness µm"></td>
           </tr>
-        </table>
-        <p class="error-message" id="thicknessError" role="alert">
-          Invalid thickness: please enter positive numbers for both layers.
-        </p>
+        </tbody>
+      </table>
+      <p class="error-message" id="thicknessError" role="alert">
+        ⚠ Invalid thickness — enter positive numbers for both layers.
+      </p>
 
-        <h4>Underlayer Permeances (GPU)</h4>
-        <table id="underlayerTable" aria-label="Underlayer permeance inputs">
-          <tr><th>Gas</th><th>GPU<sub>1</sub></th></tr>
-        </table>
+      <div class="card-subtitle">Underlayer Permeances [GPU]</div>
+      <table id="underlayerTable" aria-label="Underlayer GPU inputs">
+        <thead><tr><th>Gas</th><th>GPU₁</th></tr></thead>
+        <tbody></tbody>
+      </table>
 
-        <h4>Composite Permeances (GPU)</h4>
-        <table id="compositeTable" aria-label="Composite permeance inputs">
-          <tr><th>Gas</th><th>GPU<sub>total</sub></th></tr>
-        </table>
+      <div class="card-subtitle">Composite Permeances [GPU]</div>
+      <table id="compositeTable" aria-label="Composite GPU inputs">
+        <thead><tr><th>Gas</th><th>GPU_comp</th></tr></thead>
+        <tbody></tbody>
+      </table>
 
-        <button class="btn" id="calcBtn">Calculate Top Layer</button>
-        <p class="note">
-          Blank = impermeable (infinite resistance).<br>
-          Permeability (Barrer) = GPU × Thickness (µm).<br>
-          <em>Note: Composite permeance must be strictly less than Underlayer permeance.</em>
-        </p>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="calcBtn">
+          ▶ Calculate
+        </button>
+        <button class="btn btn-secondary" onclick="exportCSV()">
+          ⬇ Export CSV
+        </button>
+      </div>
+      <p class="note">
+        Blank = impermeable (∞ resistance).<br>
+        P₂ [Barrer] = GPU₂ × t₂ [µm].<br>
+        <em>GPU_comp must be &lt; GPU₁ (series resistance).</em>
+      </p>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════
+         RESULTS / CHARTS PANEL
+    ═══════════════════════════════════════════════════ -->
+    <div class="card" style="flex:1; min-width:320px;">
+
+      <!-- Tabs -->
+      <div class="tab-nav" role="tablist">
+        <button class="tab-btn active" role="tab" onclick="switchTab('results',this)">Results</button>
+        <button class="tab-btn" role="tab" onclick="switchTab('charts',this)">Charts</button>
+        <button class="tab-btn" role="tab" onclick="switchTab('robeson',this)">Robeson Plot</button>
       </div>
 
-      <div class="card" style="flex:1">
-        <h3>Calculated Top Layer Results</h3>
-        <table id="resultTable" style="max-width: 100%;" aria-label="Calculated top layer results"></table>
-        <p class="error-message" id="errorMsg" role="alert">
-          * Invalid: Composite permeance cannot be greater than or equal to underlayer permeance
-          in a series resistance model.
+      <!-- ── Results tab ── -->
+      <div id="tab-results" class="tab-pane active">
+        <div class="unit-row">
+          <label for="unitSelect">Display units:</label>
+          <select id="unitSelect" class="unit-select" onchange="renderResults()">
+            <option value="gpu">GPU</option>
+            <option value="si">×10⁻¹⁰ mol·m⁻²·s⁻¹·Pa⁻¹</option>
+            <option value="bar">m³(STP)·m⁻²·h⁻¹·bar⁻¹</option>
+          </select>
+        </div>
+
+        <table id="resultTable" class="result-table"
+               style="max-width:100%;" aria-label="Calculated top layer results"></table>
+        <p class="error-message" id="calcError" role="alert">
+          ⚠ Invalid entries marked above — composite GPU cannot be ≥ underlayer GPU.
         </p>
 
         <div class="sel-container">
           <div class="sel-card">
-            <h4>Underlayer Selectivity</h4>
-            <table id="selL1" aria-label="Underlayer selectivity"></table>
+            <div class="sel-card-title">Underlayer</div>
+            <table id="selL1" class="sel-table" aria-label="Underlayer selectivity"></table>
           </div>
           <div class="sel-card">
-            <h4 id="selL2Head">Calculated Top Layer</h4>
-            <table id="selL2" aria-label="Calculated top layer selectivity"></table>
+            <div class="sel-card-title" id="selL2Head">Calc. Top Layer</div>
+            <table id="selL2" class="sel-table" aria-label="Top layer selectivity"></table>
           </div>
           <div class="sel-card">
-            <h4>Composite Selectivity</h4>
-            <table id="selTotal" aria-label="Composite selectivity"></table>
+            <div class="sel-card-title">Composite</div>
+            <table id="selTotal" class="sel-table" aria-label="Composite selectivity"></table>
           </div>
         </div>
       </div>
 
-      <div class="card schematic-card">
-        <h3>Membrane Schematic</h3>
-        <div id="schematicWrapper">
-          <svg id="memSVG" width="160" height="110" viewBox="0 0 160 110"
-               role="img" aria-label="Membrane cross-section schematic"></svg>
-          <div id="layerLabels" aria-hidden="true"></div>
+      <!-- ── Charts tab ── -->
+      <div id="tab-charts" class="tab-pane">
+        <div class="chart-wrap">
+          <h4>Permeance by Gas — log scale</h4>
+          <canvas id="gpuChart" width="560" height="280"
+                  aria-label="Permeance bar chart"></canvas>
         </div>
       </div>
+
+      <!-- ── Robeson tab ── -->
+      <div id="tab-robeson" class="tab-pane">
+        <div class="chart-wrap">
+          <h4>Permeability–Selectivity Trade-off (Robeson plot)</h4>
+          <div class="pair-row">
+            <label for="robesonPair">Gas pair:</label>
+            <select id="robesonPair" class="unit-select" onchange="drawRobeson()">
+              <option value="O2/N2">O₂/N₂</option>
+              <option value="CO2/CH4">CO₂/CH₄</option>
+              <option value="H2/N2">H₂/N₂</option>
+              <option value="H2/CH4">H₂/CH₄</option>
+              <option value="CO2/N2">CO₂/N₂</option>
+            </select>
+          </div>
+          <canvas id="robesonChart" width="560" height="320"
+                  aria-label="Robeson upper-bound plot"></canvas>
+          <p class="chart-note">
+            Upper-bound lines approximate (Robeson 2008). P = GPU × thickness [µm].
+            Invalid gases omitted.
+          </p>
+        </div>
+      </div>
+
+    </div><!-- /results panel -->
+
+    <!-- ══════════════════════════════════════════════════
+         SCHEMATIC
+    ═══════════════════════════════════════════════════ -->
+    <div class="card schematic-card">
+      <div class="card-title">Schematic</div>
+      <div id="schematicWrapper">
+        <svg id="memSVG" width="72" height="200" viewBox="0 0 72 200"
+             role="img" aria-label="Membrane cross-section schematic"></svg>
+        <div id="layerLabels" aria-hidden="true"></div>
+      </div>
+      <p class="flow-label">↑ Feed side<br>↓ Permeate side</p>
     </div>
 
-    <script>
-      /* ---------- Defaults ---------- */
-      const defaultGPU1    = {He: 26.7, H2: 48.2, O2: 9, N2: 1.61, CO2: 44.8, CH4: 1.806};
-      const defaultGPUcomp = {He: 0.1396, H2: 0.12235, O2: 0.0137, N2: 0.00171, CO2: 0.04332, CH4: 0.00067};
+  </div><!-- /main-layout -->
+</div><!-- /app-body -->
 
-      const gases = ["He", "H2", "O2", "N2", "CO2", "CH4"];
-      const selPairs = [
-        ["H2","N2"], ["O2","N2"], ["CO2","CH4"], ["CO2","N2"],
-        ["H2","CH4"], ["H2","CO2"], ["N2","CH4"], ["He","H2"], ["H2","O2"]
-      ];
+<script>
+/* ================================================================
+   Constants
+================================================================ */
+const GPU_TO_MOL = 3.346e-10;  // mol/(m²·s·Pa) per GPU
+const GPU_TO_M3  = 2.699e-3;   // m³(STP)/(m²·h·bar) per GPU
 
-      /* ---------- Build input tables ---------- */
-      const underlayerTbl = document.getElementById("underlayerTable");
-      const compositeTbl  = document.getElementById("compositeTable");
+/* ================================================================
+   Defaults & data
+================================================================ */
+const defaultGPU1    = {He:26.7, H2:48.2, O2:9,    N2:1.61,  CO2:44.8, CH4:1.806};
+const defaultGPUcomp = {He:0.1396, H2:0.12235, O2:0.0137, N2:0.00171, CO2:0.04332, CH4:0.00067};
 
-      gases.forEach(gas => {
-        const row1 = underlayerTbl.insertRow();
-        row1.insertCell().textContent = gas;
-        const gpu1Input = document.createElement("input");
-        gpu1Input.type = "number";
-        gpu1Input.id = `GPU1_${gas}`;
-        gpu1Input.step = "any";
-        gpu1Input.min = "0";
-        gpu1Input.value = defaultGPU1[gas];
-        gpu1Input.setAttribute("aria-label", `Underlayer permeance for ${gas}`);
-        row1.insertCell().appendChild(gpu1Input);
+const gases = ["He","H2","O2","N2","CO2","CH4"];
+const selPairs = [
+  ["H2","N2"], ["O2","N2"], ["CO2","CH4"], ["CO2","N2"],
+  ["H2","CH4"], ["H2","CO2"], ["N2","CH4"], ["He","H2"], ["H2","O2"]
+];
 
-        const row2 = compositeTbl.insertRow();
-        row2.insertCell().textContent = gas;
-        const gpuCompInput = document.createElement("input");
-        gpuCompInput.type = "number";
-        gpuCompInput.id = `GPUcomp_${gas}`;
-        gpuCompInput.step = "any";
-        gpuCompInput.min = "0";
-        gpuCompInput.value = defaultGPUcomp[gas];
-        gpuCompInput.setAttribute("aria-label", `Composite permeance for ${gas}`);
-        row2.insertCell().appendChild(gpuCompInput);
-      });
+// Robeson 2008 upper bound: log10(α) = slope·log10(P_A) + intercept  (P in Barrer)
+const ROBESON_UB = {
+  "O2/N2":   { slope: -0.22, intercept: 0.91 },
+  "CO2/CH4": { slope: -0.30, intercept: 1.90 },
+  "H2/N2":   { slope: -0.45, intercept: 3.00 },
+  "H2/CH4":  { slope: -0.40, intercept: 2.70 },
+  "CO2/N2":  { slope: -0.35, intercept: 2.10 },
+};
 
-      /* ---------- Helpers ---------- */
-      const formatNum = (num) => {
-        if (Number.isNaN(num)) return "NaN";
-        if (num === 0) return "0";
-        const absVal = Math.abs(num);
-        if (absVal < 0.001 || absVal > 10000) return num.toExponential(3);
-        return parseFloat(num.toPrecision(4)).toString();
-      };
+/* ================================================================
+   Stored results
+================================================================ */
+let lastGpu1 = {}, lastGpu2 = {}, lastGpuComp = {};
+let lastP2   = {};   // calculated top-layer Barrer values
 
-      // Returns the top layer GPU given underlayer and composite GPU.
-      // Returns 0 if composite is impermeable, -1 if the inputs are physically impossible.
-      const extractGPU2 = (gpu1, gpuComp) => {
-        if (!gpuComp || gpuComp <= 0) return 0;          // composite impermeable
-        if (gpu1 <= 0 && gpuComp > 0) return -1;         // impossible: underlayer impermeable, composite permeable
-        if (gpu1 > 0 && gpuComp >= gpu1) return -1;      // impossible: composite >= underlayer
-        return 1 / ((1 / gpuComp) - (1 / gpu1));
-      };
+/* ================================================================
+   Build input tables
+================================================================ */
+gases.forEach(gas => {
+  const uBody = document.querySelector("#underlayerTable tbody");
+  const row1 = uBody.insertRow();
+  row1.insertCell().textContent = gas;
+  const g1 = document.createElement("input");
+  g1.type = "number"; g1.id = `GPU1_${gas}`; g1.step = "any"; g1.min = "0";
+  g1.value = defaultGPU1[gas];
+  g1.setAttribute("aria-label", `Underlayer GPU for ${gas}`);
+  row1.insertCell().appendChild(g1);
 
-      /* ---------- Build schematic ---------- */
-      const svgEl     = document.getElementById("memSVG");
-      const labelsDiv = document.getElementById("layerLabels");
-      const colors    = {layer1: "#90c7e8", layer2: "#f5b93b"};
-      let rect1, rect2;
+  const cBody = document.querySelector("#compositeTable tbody");
+  const row2 = cBody.insertRow();
+  row2.insertCell().textContent = gas;
+  const gc = document.createElement("input");
+  gc.type = "number"; gc.id = `GPUcomp_${gas}`; gc.step = "any"; gc.min = "0";
+  gc.value = defaultGPUcomp[gas];
+  gc.setAttribute("aria-label", `Composite GPU for ${gas}`);
+  row2.insertCell().appendChild(gc);
+});
 
-      function drawSchematic(thickness1, thickness2, layer1Name, layer2Name) {
-        const total     = thickness1 + thickness2 || 1;
-        const barHeight = 100;
-        const barWidth  = 120;
-        const padY      = 5;
+/* ================================================================
+   Physics helpers
+================================================================ */
+// Returns top-layer GPU. 0 = impermeable composite; -1 = impossible.
+const extractGPU2 = (gpu1, gpuComp) => {
+  if (!gpuComp || gpuComp <= 0) return 0;
+  if (gpu1 <= 0 && gpuComp > 0) return -1;
+  if (gpu1 > 0 && gpuComp >= gpu1) return -1;
+  return 1 / ((1 / gpuComp) - (1 / gpu1));
+};
 
-        if (!rect1) {
-          rect1 = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-          rect2 = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-          svgEl.appendChild(rect1);
-          svgEl.appendChild(rect2);
-        }
+/* ================================================================
+   Number formatting
+================================================================ */
+function formatNum(val, unit) {
+  if (Number.isNaN(val)) return "NaN";
+  if (!val || val === 0) return "0";
+  if (unit === "si")  return (val * GPU_TO_MOL * 1e10).toPrecision(3);
+  if (unit === "bar") {
+    const v = val * GPU_TO_M3;
+    return v < 0.001 ? v.toExponential(2) : v.toPrecision(3);
+  }
+  // GPU
+  const a = Math.abs(val);
+  if (a < 0.001 || a > 10000) return val.toExponential(3);
+  return parseFloat(val.toPrecision(4)).toString();
+}
 
-        // Top layer (layer 2) drawn at top of bar
-        rect2.setAttribute("x", 20);
-        rect2.setAttribute("y", padY);
-        rect2.setAttribute("width", barWidth);
-        rect2.setAttribute("height", barHeight * thickness2 / total);
-        rect2.setAttribute("fill", colors.layer2);
-        rect2.setAttribute("stroke", "#555");
+function superscript(n) {
+  const map = {"0":"⁰","1":"¹","2":"²","3":"³","4":"⁴","5":"⁵",
+               "6":"⁶","7":"⁷","8":"⁸","9":"⁹","-":"⁻"};
+  return String(n).split("").map(c => map[c] ?? c).join("");
+}
 
-        // Underlayer (layer 1) drawn below top layer
-        rect1.setAttribute("x", 20);
-        rect1.setAttribute("y", padY + barHeight * thickness2 / total);
-        rect1.setAttribute("width", barWidth);
-        rect1.setAttribute("height", barHeight * thickness1 / total);
-        rect1.setAttribute("fill", colors.layer1);
-        rect1.setAttribute("stroke", "#555");
+/* ================================================================
+   Name sync
+================================================================ */
+function syncNames() {
+  const name = (document.getElementById("layer2Name").value || "Top Layer").trim();
+  document.getElementById("thickName").textContent = `${name} (L2)`;
+  document.getElementById("selL2Head").textContent = `Calc. ${name}`;
+}
 
-        labelsDiv.innerHTML = "";
-        const makeLabel = (color, text) => {
-          const p = document.createElement("p");
-          p.style.margin = "2px 0";
-          p.innerHTML = `<span class="swatch" style="background:${color}"></span>${text}`;
-          labelsDiv.appendChild(p);
-        };
-        makeLabel(colors.layer2, layer2Name);
-        makeLabel(colors.layer1, layer1Name);
-      }
+/* ================================================================
+   Tab switching
+================================================================ */
+function switchTab(id, btn) {
+  document.querySelectorAll(".tab-pane").forEach(p => p.classList.remove("active"));
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+  document.getElementById(`tab-${id}`).classList.add("active");
+  btn.classList.add("active");
+  if (id === "charts")  drawGpuChart();
+  if (id === "robeson") drawRobeson();
+}
 
-      /* ---------- Main calculation ---------- */
-      function calculate(isClick = false) {
-        const layer2Name = (document.getElementById("layer2Name").value || "Top Layer").trim();
-        document.getElementById("thickName").textContent = `${layer2Name} (Layer 2)`;
-        document.getElementById("selL2Head").textContent = `Calc. ${layer2Name}`;
+/* ================================================================
+   Main calculation
+================================================================ */
+function calculate(isClick = false) {
+  syncNames();
+  const t1 = parseFloat(document.getElementById("t1").value);
+  const t2 = parseFloat(document.getElementById("t2").value);
 
-        const thickness1 = parseFloat(document.getElementById("t1").value);
-        const thickness2 = parseFloat(document.getElementById("t2").value);
+  const thickErr = document.getElementById("thicknessError");
+  if (Number.isNaN(t1) || Number.isNaN(t2) || t1 <= 0 || t2 <= 0) {
+    thickErr.style.display = "block"; return;
+  }
+  thickErr.style.display = "none";
 
-        const thicknessError = document.getElementById("thicknessError");
-        if (Number.isNaN(thickness1) || Number.isNaN(thickness2) || thickness1 <= 0 || thickness2 <= 0) {
-          thicknessError.style.display = "block";
-          return;
-        }
-        thicknessError.style.display = "none";
+  let hasError = false;
 
-        const gpu1 = {}, gpu2 = {}, gpuComp = {}, permeability2 = {};
-        let hasError = false;
+  gases.forEach(gas => {
+    let gpu1     = parseFloat(document.getElementById(`GPU1_${gas}`).value);
+    let gpuComp  = parseFloat(document.getElementById(`GPUcomp_${gas}`).value);
+    if (Number.isNaN(gpu1))    gpu1    = 0;
+    if (Number.isNaN(gpuComp)) gpuComp = 0;
 
-        gases.forEach(gas => {
-          let underlayerGPU  = parseFloat(document.getElementById(`GPU1_${gas}`).value);
-          let compositeGPU   = parseFloat(document.getElementById(`GPUcomp_${gas}`).value);
+    lastGpu1[gas]    = gpu1;
+    lastGpuComp[gas] = gpuComp;
 
-          if (Number.isNaN(underlayerGPU))  underlayerGPU  = 0;
-          if (Number.isNaN(compositeGPU))   compositeGPU   = 0;
+    const gpu2 = extractGPU2(gpu1, gpuComp);
+    lastGpu2[gas] = gpu2;
 
-          gpu1[gas]    = underlayerGPU;
-          gpuComp[gas] = compositeGPU;
+    if (gpu2 === -1) {
+      hasError = true;
+      lastP2[gas] = -1;
+    } else {
+      lastP2[gas] = gpu2 * t2;
+    }
+  });
 
-          const calculatedGPU2 = extractGPU2(underlayerGPU, compositeGPU);
-          gpu2[gas] = calculatedGPU2;
+  document.getElementById("calcError").style.display = hasError ? "block" : "none";
+  renderResults();
+  drawSchematic(t1, t2);
 
-          if (calculatedGPU2 === -1) {
-            hasError = true;
-            permeability2[gas] = -1;
-          } else {
-            permeability2[gas] = calculatedGPU2 * thickness2;
-          }
-        });
+  const active = document.querySelector(".tab-pane.active");
+  if (active?.id === "tab-charts")  drawGpuChart();
+  if (active?.id === "tab-robeson") drawRobeson();
 
-        document.getElementById("errorMsg").style.display = hasError ? "block" : "none";
+  if (isClick) {
+    const btn = document.getElementById("calcBtn");
+    btn.textContent = "✓ Calculated";
+    btn.disabled = true;
+    setTimeout(() => { btn.textContent = "▶ Calculate"; btn.disabled = false; }, 900);
+  }
+}
 
-        /* ----- Permeance table ----- */
-        const resultTable = document.getElementById("resultTable");
-        resultTable.innerHTML = "";
-        const headerRow = resultTable.insertRow();
-        ["Gas", "GPU₁ (Underlayer)", "GPU_total (Composite)", "Calc. GPU₂", "Calc. P₂ [Barrer]"].forEach(label => {
-          const headerCell = document.createElement("th");
-          headerCell.textContent = label;
-          headerRow.appendChild(headerCell);
-        });
+/* ================================================================
+   Render results (unit-aware)
+================================================================ */
+function renderResults() {
+  const unit = document.getElementById("unitSelect").value;
+  const name = (document.getElementById("layer2Name").value || "Top Layer").trim();
 
-        gases.forEach(gas => {
-          const row = resultTable.insertRow();
-          row.insertCell().textContent = gas;
-          row.insertCell().textContent = gpu1[gas]    ? formatNum(gpu1[gas])    : "0";
-          row.insertCell().textContent = gpuComp[gas] ? formatNum(gpuComp[gas]) : "0";
+  let uLabel = "GPU";
+  if (unit === "si")  uLabel = "×10⁻¹⁰ mol·m⁻²·s⁻¹·Pa⁻¹";
+  if (unit === "bar") uLabel = "m³(STP)·m⁻²·h⁻¹·bar⁻¹";
 
-          const gpu2Cell = row.insertCell();
-          const p2Cell   = row.insertCell();
+  const rt = document.getElementById("resultTable");
+  rt.innerHTML = "";
+  const hdr = rt.insertRow();
+  [`Gas`, `GPU₁ Underlayer [${uLabel}]`, `GPU_comp [${uLabel}]`,
+   `Calc. GPU₂ [${uLabel}]`, `Calc. P₂ [Barrer]`].forEach(txt => {
+    const th = document.createElement("th"); th.textContent = txt; hdr.appendChild(th);
+  });
 
-          if (gpu2[gas] === -1) {
-            gpu2Cell.innerHTML = `<span class="error-text">Invalid*</span>`;
-            p2Cell.innerHTML   = `<span class="error-text">Invalid*</span>`;
-          } else {
-            gpu2Cell.textContent = gpu2[gas] > 0 ? formatNum(gpu2[gas])           : "—";
-            p2Cell.textContent   = gpu2[gas] > 0 ? formatNum(permeability2[gas])  : "—";
-          }
-        });
+  gases.forEach(gas => {
+    const row = rt.insertRow();
+    row.insertCell().textContent = gas;
+    row.insertCell().textContent = lastGpu1[gas]    ? formatNum(lastGpu1[gas],    unit) : "0";
+    row.insertCell().textContent = lastGpuComp[gas] ? formatNum(lastGpuComp[gas], unit) : "0";
 
-        /* ----- Selectivity tables ----- */
-        buildSelectivity("selL1",    gpu1);
-        buildSelectivity("selL2",    gpu2, true);
-        buildSelectivity("selTotal", gpuComp);
+    const gpu2c = row.insertCell();
+    const p2c   = row.insertCell();
 
-        /* ----- Schematic ----- */
-        drawSchematic(thickness1, thickness2, "Underlayer", layer2Name);
+    if (lastGpu2[gas] === -1) {
+      gpu2c.innerHTML = `<span class="error-text">Invalid ✕</span>`;
+      p2c.innerHTML   = `<span class="error-text">Invalid ✕</span>`;
+    } else {
+      gpu2c.textContent = lastGpu2[gas] > 0 ? formatNum(lastGpu2[gas], unit) : "—";
+      p2c.textContent   = lastP2[gas]   > 0 ? formatNum(lastP2[gas],   "gpu") : "—";
+    }
+  });
 
-        /* ----- Button feedback ----- */
-        if (isClick) {
-          const btn = document.getElementById("calcBtn");
-          btn.textContent = "Calculated!";
-          btn.disabled = true;
-          setTimeout(() => {
-            btn.textContent = "Calculate Top Layer";
-            btn.disabled = false;
-          }, 800);
-        }
-      }
+  buildSelectivity("selL1",    lastGpu1,    false);
+  buildSelectivity("selL2",    lastGpu2,    true);
+  buildSelectivity("selTotal", lastGpuComp, false);
+}
 
-      function buildSelectivity(tableId, gpu, hideZero = false) {
-        const table = document.getElementById(tableId);
-        table.innerHTML = "";
-        const headerRow = table.insertRow();
-        ["A/B", "α (A/B)"].forEach(label => {
-          const headerCell = document.createElement("th");
-          headerCell.textContent = label;
-          headerRow.appendChild(headerCell);
-        });
-        selPairs.forEach(([gasA, gasB]) => {
-          const row = table.insertRow();
-          row.insertCell().textContent = `${gasA}/${gasB}`;
+function buildSelectivity(tableId, gpu, hideZero) {
+  const t = document.getElementById(tableId);
+  t.innerHTML = "";
+  const hdr = t.insertRow();
+  ["A/B","α"].forEach(txt => {
+    const th = document.createElement("th"); th.textContent = txt; hdr.appendChild(th);
+  });
+  selPairs.forEach(([A, B]) => {
+    const row = t.insertRow();
+    row.insertCell().textContent = `${A}/${B}`;
+    const vc = row.insertCell();
+    if (gpu[A] === -1 || gpu[B] === -1) {
+      vc.textContent = "Invalid";
+      vc.className = "alpha-lo";
+    } else if (!gpu[B]) {
+      vc.textContent = hideZero ? "—" : "∞";
+    } else {
+      const alpha = gpu[A] / gpu[B];
+      vc.textContent = alpha >= 100 ? alpha.toFixed(0) : alpha.toFixed(2);
+      if      (alpha >= 10) vc.className = "alpha-hi";
+      else if (alpha >= 4)  vc.className = "alpha-mid";
+      else if (alpha < 1)   vc.className = "alpha-lo";
+    }
+  });
+}
 
-          let value = "—";
-          if (gpu[gasA] === -1 || gpu[gasB] === -1) {
-            value = "Invalid";
-          } else if (gpu[gasB]) {
-            value = formatNum(gpu[gasA] / gpu[gasB]);
-          } else if (!hideZero) {
-            value = "∞";
-          }
-          row.insertCell().textContent = value;
-        });
-      }
+/* ================================================================
+   Canvas: permeance bar chart (log Y-axis)
+================================================================ */
+function drawGpuChart() {
+  const canvas = document.getElementById("gpuChart");
+  const ctx = canvas.getContext("2d");
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
 
-      /* initial render */
-      calculate(false);
+  const padL = 68, padR = 16, padT = 20, padB = 44;
+  const cW = W - padL - padR, cH = H - padT - padB;
 
-      /* Button wired here so onclick attribute isn't needed in HTML */
-      document.getElementById("calcBtn").addEventListener("click", () => calculate(true));
-    </script>
-  </body>
+  const allVals = [];
+  gases.forEach(g => {
+    if (lastGpu1[g] > 0)    allVals.push(lastGpu1[g]);
+    if (lastGpu2[g] > 0)    allVals.push(lastGpu2[g]);
+    if (lastGpuComp[g] > 0) allVals.push(lastGpuComp[g]);
+  });
+  if (!allVals.length) { drawPlaceholder(ctx, W, H, "Run Calculate first"); return; }
+
+  const logMax = Math.ceil(Math.log10(Math.max(...allVals))) + 0.4;
+  const logMin = Math.floor(Math.log10(Math.min(...allVals))) - 0.3;
+  const toY = lv => padT + cH * (logMax - lv) / (logMax - logMin);
+
+  ctx.fillStyle = "#f8fafc";
+  ctx.fillRect(padL, padT, cW, cH);
+
+  ctx.textAlign = "right";
+  for (let p = Math.floor(logMin); p <= Math.ceil(logMax); p++) {
+    const y = toY(p);
+    if (y < padT - 2 || y > H - padB + 2) continue;
+    ctx.strokeStyle = "#e2e8f0"; ctx.lineWidth = 0.8;
+    ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W - padR, y); ctx.stroke();
+    ctx.fillStyle = "#64748b"; ctx.font = "10.5px sans-serif";
+    ctx.fillText(`10${superscript(p)}`, padL - 5, y + 4);
+  }
+
+  const COLORS   = ["#3b82f6", "#f59e0b", "#10b981"];
+  const series   = [lastGpu1, lastGpu2, lastGpuComp];
+  const LBLS     = ["Underlayer", "Calc. Top", "Composite"];
+  const groupW   = cW / gases.length;
+  const barUnit  = groupW * 0.78 / 3;
+
+  gases.forEach((gas, i) => {
+    const gx = padL + i * groupW + groupW * 0.11;
+    series.forEach((gpu, s) => {
+      const v = gpu[gas];
+      if (!v || v <= 0) return;
+      const bx   = gx + s * (barUnit + 2);
+      const bTop = toY(Math.log10(v));
+      ctx.fillStyle = COLORS[s];
+      ctx.fillRect(bx, bTop, barUnit, H - padB - bTop);
+      ctx.strokeStyle = "rgba(0,0,0,.12)"; ctx.lineWidth = 0.6;
+      ctx.strokeRect(bx, bTop, barUnit, H - padB - bTop);
+    });
+    ctx.fillStyle = "#334155"; ctx.textAlign = "center"; ctx.font = "11.5px sans-serif";
+    ctx.fillText(gas, padL + i * groupW + groupW / 2, H - padB + 14);
+  });
+
+  // Legend
+  let legX = padL + 6, legY = padT + 12;
+  LBLS.forEach((lbl, i) => {
+    ctx.fillStyle = COLORS[i];
+    ctx.fillRect(legX, legY - 9, 11, 11);
+    ctx.fillStyle = "#334155"; ctx.textAlign = "left"; ctx.font = "10.5px sans-serif";
+    ctx.fillText(lbl, legX + 14, legY);
+    legX += ctx.measureText(lbl).width + 28;
+  });
+
+  ctx.strokeStyle = "#94a3b8"; ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(padL, padT); ctx.lineTo(padL, H - padB); ctx.lineTo(W - padR, H - padB);
+  ctx.stroke();
+
+  ctx.save();
+  ctx.translate(13, padT + cH / 2); ctx.rotate(-Math.PI / 2);
+  ctx.fillStyle = "#475569"; ctx.font = "bold 10.5px sans-serif"; ctx.textAlign = "center";
+  ctx.fillText("Permeance (GPU)", 0, 0);
+  ctx.restore();
+}
+
+/* ================================================================
+   Canvas: Robeson plot
+================================================================ */
+function drawRobeson() {
+  const pairKey = document.getElementById("robesonPair").value;
+  const [gasA, gasB] = pairKey.split("/");
+  const ub = ROBESON_UB[pairKey];
+  const canvas = document.getElementById("robesonChart");
+  const ctx = canvas.getContext("2d");
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  const padL = 62, padR = 28, padT = 20, padB = 48;
+  const cW = W - padL - padR, cH = H - padT - padB;
+
+  const xMin = -2, xMax = 5;
+  const yMin = -0.3, yMax = 3.5;
+
+  const toX = lv => padL + (lv - xMin) / (xMax - xMin) * cW;
+  const toY = lv => padT + (yMax - lv) / (yMax - yMin) * cH;
+
+  ctx.fillStyle = "#f8fafc";
+  ctx.fillRect(padL, padT, cW, cH);
+
+  ctx.strokeStyle = "#e2e8f0"; ctx.lineWidth = 0.8;
+  for (let p = Math.ceil(xMin); p <= xMax; p++) {
+    const x = toX(p);
+    ctx.beginPath(); ctx.moveTo(x, padT); ctx.lineTo(x, H - padB); ctx.stroke();
+  }
+  for (let p = Math.ceil(yMin); p <= yMax; p++) {
+    const y = toY(p);
+    ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W - padR, y); ctx.stroke();
+  }
+
+  ctx.fillStyle = "#64748b"; ctx.font = "10.5px sans-serif";
+  ctx.textAlign = "center";
+  for (let p = Math.ceil(xMin); p <= xMax; p++) {
+    ctx.fillText(`10${superscript(p)}`, toX(p), H - padB + 15);
+  }
+  ctx.textAlign = "right";
+  for (let p = Math.ceil(yMin); p <= yMax; p++) {
+    ctx.fillText(`10${superscript(p)}`, padL - 5, toY(p) + 4);
+  }
+
+  // Upper-bound line
+  ctx.strokeStyle = "#dc2626"; ctx.lineWidth = 2;
+  ctx.setLineDash([7, 4]);
+  ctx.beginPath();
+  let first = true;
+  for (let lp = xMin - 0.5; lp <= xMax + 0.5; lp += 0.05) {
+    const la = ub.slope * lp + ub.intercept;
+    if (la < yMin - 0.5 || la > yMax + 0.5) continue;
+    const x = toX(lp), y = toY(Math.max(yMin, Math.min(yMax, la)));
+    if (first) { ctx.moveTo(x, y); first = false; } else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  function plotPoint(P_A, P_B, color, label) {
+    if (P_A <= 0 || P_B <= 0) return;
+    const alpha = P_A / P_B;
+    if (alpha <= 0) return;
+    const lx = Math.log10(P_A), ly = Math.log10(alpha);
+    if (lx < xMin - 0.1 || lx > xMax + 0.1 || ly < yMin - 0.1 || ly > yMax + 0.1) return;
+    ctx.beginPath();
+    ctx.arc(toX(lx), toY(ly), 6, 0, Math.PI * 2);
+    ctx.fillStyle = color; ctx.fill();
+    ctx.strokeStyle = "white"; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.fillStyle = color; ctx.font = "bold 10px sans-serif"; ctx.textAlign = "left";
+    ctx.fillText(label, toX(lx) + 9, toY(ly) + 4);
+  }
+
+  const t1 = parseFloat(document.getElementById("t1").value) || 1;
+  const t2 = parseFloat(document.getElementById("t2").value) || 0.02;
+
+  // Underlayer: P = GPU1 × t1
+  plotPoint(lastGpu1[gasA] * t1, lastGpu1[gasB] * t1, "#2563eb", "Underlayer");
+
+  // Calculated top layer: P2 = GPU2 × t2 (skip invalid)
+  if (lastGpu2[gasA] > 0 && lastGpu2[gasB] > 0) {
+    plotPoint(lastGpu2[gasA] * t2, lastGpu2[gasB] * t2, "#d97706", "Top Layer");
+  }
+
+  // Composite: P_eff = GPU_comp × (t1 + t2)
+  const pEffA = lastGpuComp[gasA] * (t1 + t2);
+  const pEffB = lastGpuComp[gasB] * (t1 + t2);
+  plotPoint(pEffA, pEffB, "#059669", "Composite");
+
+  // Axes
+  ctx.strokeStyle = "#94a3b8"; ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(padL, padT); ctx.lineTo(padL, H - padB); ctx.lineTo(W - padR, H - padB);
+  ctx.stroke();
+
+  ctx.fillStyle = "#475569"; ctx.font = "bold 10.5px sans-serif"; ctx.textAlign = "center";
+  ctx.fillText(`P(${gasA}) [Barrer]`, padL + cW / 2, H - padB + 32);
+  ctx.save();
+  ctx.translate(13, padT + cH / 2); ctx.rotate(-Math.PI / 2);
+  ctx.fillText(`α(${gasA}/${gasB})`, 0, 0);
+  ctx.restore();
+
+  // Legend
+  ctx.setLineDash([7, 4]); ctx.strokeStyle = "#dc2626"; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(padL + 8, padT + 10); ctx.lineTo(padL + 26, padT + 10); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = "#64748b"; ctx.font = "9.5px sans-serif"; ctx.textAlign = "left";
+  ctx.fillText("Robeson 2008 upper bound (approx.)", padL + 29, padT + 13);
+}
+
+/* ================================================================
+   Placeholder
+================================================================ */
+function drawPlaceholder(ctx, W, H, msg) {
+  ctx.fillStyle = "#94a3b8"; ctx.font = "13px sans-serif"; ctx.textAlign = "center";
+  ctx.fillText(msg, W / 2, H / 2);
+}
+
+/* ================================================================
+   Schematic (SVG)
+================================================================ */
+const svgEl     = document.getElementById("memSVG");
+const labelsDiv = document.getElementById("layerLabels");
+const COLORS_SCH = { layer1: "#93c5fd", layer2: "#fcd34d" };
+let rect1, rect2;
+
+function drawSchematic(t1, t2) {
+  const name = (document.getElementById("layer2Name").value || "Top Layer").trim();
+  const total = t1 + t2 || 1;
+  const barH = 185, barW = 44, padY = 6;
+
+  if (!rect1) {
+    rect1 = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+    rect2 = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+    svgEl.appendChild(rect1); svgEl.appendChild(rect2);
+  }
+
+  // Top layer (L2) at top of bar
+  rect2.setAttribute("x", 14); rect2.setAttribute("y", padY);
+  rect2.setAttribute("width", barW);
+  rect2.setAttribute("height", barH * t2 / total);
+  rect2.setAttribute("fill", COLORS_SCH.layer2);
+  rect2.setAttribute("stroke", "#64748b"); rect2.setAttribute("stroke-width", "1");
+
+  // Underlayer (L1) below
+  rect1.setAttribute("x", 14);
+  rect1.setAttribute("y", padY + barH * t2 / total);
+  rect1.setAttribute("width", barW);
+  rect1.setAttribute("height", barH * t1 / total);
+  rect1.setAttribute("fill", COLORS_SCH.layer1);
+  rect1.setAttribute("stroke", "#64748b"); rect1.setAttribute("stroke-width", "1");
+
+  labelsDiv.innerHTML = "";
+  [[name, COLORS_SCH.layer2], ["Underlayer", COLORS_SCH.layer1]].forEach(([txt, clr]) => {
+    const p = document.createElement("p");
+    p.innerHTML = `<span class="swatch" style="background:${clr}"></span>${txt}`;
+    labelsDiv.appendChild(p);
+  });
+}
+
+/* ================================================================
+   Export CSV
+================================================================ */
+function exportCSV() {
+  const name = (document.getElementById("layer2Name").value || "Top Layer").trim();
+  const t2   = parseFloat(document.getElementById("t2").value) || 0.02;
+
+  const rows = [
+    [`# Top Layer Calculator — ${new Date().toLocaleDateString()}`],
+    [`Top Layer: ${name}`, `t₂ = ${t2} µm`],
+    [],
+    ["Gas","GPU1_underlayer","GPU_comp","Calc_GPU2","Calc_P2_Barrer",
+     "SI_GPU2 (×1e-10 mol/m2/s/Pa)","m3bar_GPU2"],
+  ];
+  gases.forEach(g => {
+    const gpu2 = lastGpu2[g] === -1 ? "Invalid" : lastGpu2[g].toFixed(4);
+    const p2   = lastP2[g]   === -1 ? "Invalid" : (lastGpu2[g] > 0 ? lastP2[g].toExponential(3) : "0");
+    const si   = lastGpu2[g] > 0 ? (lastGpu2[g] * GPU_TO_MOL * 1e10).toExponential(3) : "—";
+    const m3b  = lastGpu2[g] > 0 ? (lastGpu2[g] * GPU_TO_M3).toExponential(3) : "—";
+    rows.push([g, lastGpu1[g].toFixed(4), lastGpuComp[g].toFixed(4), gpu2, p2, si, m3b]);
+  });
+  rows.push([], ["Pair","α_Underlayer","α_TopLayer","α_Composite"]);
+  selPairs.forEach(([A, B]) => {
+    const a = (gpu, gA, gB) => {
+      if (gpu[gA] === -1 || gpu[gB] === -1) return "Invalid";
+      return gpu[gB] ? (gpu[gA] / gpu[gB]).toFixed(2) : "—";
+    };
+    rows.push([`${A}/${B}`, a(lastGpu1,A,B), a(lastGpu2,A,B), a(lastGpuComp,A,B)]);
+  });
+
+  const csv = rows.map(r => r.join(",")).join("\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+  a.download = "top_layer_permeance.csv";
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+/* ================================================================
+   Init
+================================================================ */
+calculate(false);
+document.getElementById("calcBtn").addEventListener("click", () => calculate(true));
+</script>
+</body>
 </html>
